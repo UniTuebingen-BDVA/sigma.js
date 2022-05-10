@@ -43,6 +43,12 @@ import { IEdgeProgram } from "./rendering/webgl/programs/common/edge";
 import TouchCaptor, { FakeSigmaMouseEvent } from "./core/captors/touch";
 import { identity, multiplyVec2 } from "./utils/matrices";
 import { doEdgeCollideWithPoint, isPixelColored } from "./utils/edge-collisions";
+import ClusterHighlightingRectangleProgram from "./rendering/webgl/programs/clusterHighlight_rectangle";
+import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clusterHighlight";
+
+export interface AdditionalData{
+  clusterAreas: [number[]]
+}
 
 /**
  * Important functions.
@@ -149,6 +155,7 @@ export type SigmaEvents = SigmaStageEvents & SigmaNodeEvents & SigmaEdgeEvents &
  */
 export default class Sigma extends TypedEventEmitter<SigmaEvents> {
   private settings: Settings;
+  private additionalData: AdditionalData;
   private graph: Graph;
   private mouseCaptor: MouseCaptor;
   private touchCaptor: TouchCaptor;
@@ -197,14 +204,15 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
   private nodePrograms: { [key: string]: INodeProgram } = {};
   private hoverNodePrograms: { [key: string]: INodeProgram } = {};
   private edgePrograms: { [key: string]: IEdgeProgram } = {};
+  private clusterHiglightProgram:   IClusterHighlightProgram;
 
   private camera: Camera;
 
-  constructor(graph: Graph, container: HTMLElement, settings: Partial<Settings> = {}) {
+  constructor(graph: Graph, container: HTMLElement, settings: Partial<Settings> = {}, additionalData: AdditionalData) {
     super();
 
     this.settings = assign<Settings>({}, DEFAULT_SETTINGS, settings);
-
+    this.additionalData = additionalData;
     // Validating
     validateSettings(this.settings);
     validateGraph(graph);
@@ -230,6 +238,8 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.enable(gl.BLEND);
     }
+     // Loading programs NodeFastProgram
+     this.clusterHiglightProgram = new ClusterHighlightingRectangleProgram(this.webGLContexts.clusterHighlights); 
 
     // Loading programs
     for (const type in this.settings.nodeProgramClasses) {
@@ -726,7 +736,29 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     this.normalizationFunction = createNormalizationFunction(this.customBBox || this.nodeExtent);
 
     const nodesPerPrograms: Record<string, number> = {};
-
+    let clusterAreas = this.additionalData.clusterAreas;
+    this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
+    let nra = 0.025; //nodeRadiusAdjustment
+    for (let i = 0, l = clusterAreas.length; i < l; i++) {
+        let clusterAreaNorm: {xMin: number, xMax: number, yMin: number, yMax: number} = {xMin: 0, xMax: 0 ,yMin: 0, yMax: 0 };
+        for (let j = 0; j < 2; j++) {
+            let norm_xy: Coordinates = {x: clusterAreas[i][j], y: clusterAreas[i][2+j]};
+            this.normalizationFunction.applyTo(norm_xy);
+            for (let [k, coord] of Object.entries(norm_xy)) {
+                let cur_val: number = coord; 
+                coord = cur_val <= nra ? -nra: cur_val >= 1-nra ? 1 + nra: cur_val;
+              }
+            if (j == 0){
+                clusterAreaNorm.xMin = norm_xy.x;
+                clusterAreaNorm.yMin = norm_xy.y;
+            }
+            else{
+                clusterAreaNorm.xMax = norm_xy.x;
+                clusterAreaNorm.yMax = norm_xy.y;
+            } 
+        }
+        this.clusterHiglightProgram.process(clusterAreaNorm, i);
+    }
     let nodes = graph.nodes();
 
     for (let i = 0, l = nodes.length; i < l; i++) {
@@ -1246,7 +1278,16 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
         });
       }
     }
-
+    this.clusterHiglightProgram.bind();
+    this.clusterHiglightProgram.bufferData();
+    this.clusterHiglightProgram.render({
+        matrix: this.matrix,
+        width: this.width,
+        height: this.height,
+        ratio: cameraState.ratio,
+        correctionRatio: this.correctionRatio / cameraState.ratio,
+        scalingRatio: this.pixelRatio,
+    });
     // Do not display labels on move per setting
     if (this.settings.hideLabelsOnMove && moving) return handleEscape();
 

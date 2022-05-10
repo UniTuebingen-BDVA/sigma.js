@@ -69,6 +69,17 @@ export interface NodeDisplayData extends Coordinates, DisplayData {
   highlighted: boolean;
 }
 
+export interface ClusterHighlightData {
+}
+
+export interface ClusterRectangleData extends ClusterHighlightData{
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number; 
+  color?: string;
+}
+
 export interface EdgeDisplayData extends DisplayData {}
 
 export type CoordinateConversionOverride = {

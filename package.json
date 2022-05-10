@@ -83,6 +83,10 @@
     "pixelmatch": "^5.2.1",
     "pngjs": "^6.0.0",
     "prettier": "^2.5.1",
+<<<<<<< Updated upstream
+=======
+    "puppeteer": "^14.0.0",
+>>>>>>> Stashed changes
     "raw-loader": "^4.0.2",
     "reload": "^3.2.0",
     "replace": "^1.2.1",
