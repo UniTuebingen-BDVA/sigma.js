@@ -56,7 +56,8 @@
   "dependencies": {
     "@yomguithereal/helpers": "^1.1.1",
     "events": "^3.3.0",
-    "graphology-utils": "^2.5.0"
+    "graphology-utils": "^2.5.0",
+    "yarn": "^1.22.18"
   },
   "devDependencies": {
     "@babel/core": "^7.16.5",
