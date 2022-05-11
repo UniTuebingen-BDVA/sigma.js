@@ -22,8 +22,6 @@
    positionLocation: GLint;
    colorLocation: GLint;
    matrixLocation: WebGLUniformLocation;
-  //  sqrtZoomRatioLocation: WebGLUniformLocation;
-  //  correctionRatioLocation: WebGLUniformLocation;
 
    constructor(
      gl: WebGLRenderingContext,
@@ -42,14 +40,6 @@
      const matrixLocation = gl.getUniformLocation(this.program, "u_matrix");
      if (matrixLocation === null) throw new Error("AbstractClusterHighlightProgram: error while getting matrixLocation");
      this.matrixLocation = matrixLocation;
- 
-    //  const sqrtZoomRatioLocation = gl.getUniformLocation(this.program, "u_sqrtZoomRatio");
-    // if (sqrtZoomRatioLocation === null) throw new Error("NodeProgram: error while getting sqrtZoomRatioLocation");
-    // this.sqrtZoomRatioLocation = sqrtZoomRatioLocation;
-
-    // const correctionRatioLocation = gl.getUniformLocation(this.program, "u_correctionRatio");
-    // if (correctionRatioLocation === null) throw new Error("NodeProgram: error while getting correctionRatioLocation");
-    // this.correctionRatioLocation = correctionRatioLocation;
    }
  
    bind(): void {

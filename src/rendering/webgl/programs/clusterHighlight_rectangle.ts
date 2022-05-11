@@ -1,35 +1,3 @@
-"use strict";
-// var __extends = (this && this.__extends) || (function () {
-//     var extendStatics = function (d, b) {
-//         extendStatics = Object.setPrototypeOf ||
-//             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-//             function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-//         return extendStatics(d, b);
-//     };
-//     return function (d, b) {
-//         if (typeof b !== "function" && b !== null)
-//             throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-//         extendStatics(d, b);
-//         function __() { this.constructor = d; }
-//         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-//     };
-// })();
-// Object.defineProperty(exports, "__esModule", { value: true });
-// exports.createNodeCompoundProgram = exports.AbstractNodeProgram = void 0;
-/**
- * Sigma WebGL Abstract Node Program
- * =====================================
- *
- * @module
- */
-// var program_1 = require("./program");
-// var __importDefault = function (mod: { __esModule: string; }) {
-//   return (mod && mod.__esModule) ? mod : { "default": mod };
-// };
-// var vertexShaderSource = __importDefault(require("../shaders/clusterHighlight.rectangle.frag.glsl.js"));
-// var fragmentShaderSource = __importDefault(require("../shaders/clusterHighlight.rectangle.frag.glsl.js"));
-
-
 import { ClusterRectangleData } from "../../../types";
 import { rgbaToFloatColor } from "../../../utils";
 import vertexShaderSource from "../shaders/clusterHighlight.rectangle.vert.glsl";
