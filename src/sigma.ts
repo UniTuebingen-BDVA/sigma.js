@@ -223,6 +223,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     this.container = container;
 
     // Initializing contexts
+    this.createWebGLContext("clusterHighlights");
     this.createWebGLContext("edges", { preserveDrawingBuffer: true });
     this.createCanvasContext("edgeLabels");
     this.createWebGLContext("nodes");
@@ -238,8 +239,9 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.enable(gl.BLEND);
     }
+    const ClusterHighlightProgramConstructor = ClusterHighlightingRectangleProgram
      // Loading programs NodeFastProgram
-     this.clusterHiglightProgram = new ClusterHighlightingRectangleProgram(this.webGLContexts.clusterHighlights); 
+    this.clusterHiglightProgram = new ClusterHighlightProgramConstructor(this.webGLContexts.clusterHighlights); 
 
     // Loading programs
     for (const type in this.settings.nodeProgramClasses) {
