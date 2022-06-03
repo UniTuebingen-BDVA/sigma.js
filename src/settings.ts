@@ -79,6 +79,7 @@ export interface Settings {
   // Program classes
   nodeProgramClasses: { [key: string]: NodeProgramConstructor };
   edgeProgramClasses: { [key: string]: EdgeProgramConstructor };
+  clusterVis: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -136,4 +137,5 @@ export const DEFAULT_SETTINGS: Settings = {
     arrow: ArrowEdgeProgram,
     line: LineEdgeProgram,
   },
+    clusterVis: 'convexHull'
 };

@@ -46,8 +46,9 @@ import { doEdgeCollideWithPoint, isPixelColored } from "./utils/edge-collisions"
 import ClusterHighlightingRectangleProgram from "./rendering/webgl/programs/clusterHighlight_rectangle";
 import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clusterHighlight";
 
-export interface AdditionalData{
-  clusterAreas: [number[]]
+
+interface AdditionalData {
+  clusterAreas: [number[]] | [[[number,number]]];
 }
 
 /**
@@ -107,7 +108,7 @@ export interface SigmaEventPayload {
   preventSigmaDefault(): void;
 }
 
-export interface SigmaStageEventPayload extends SigmaEventPayload {}
+export interface SigmaStageEventPayload extends SigmaEventPayload { }
 export interface SigmaNodeEventPayload extends SigmaEventPayload {
   node: string;
 }
@@ -204,7 +205,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
   private nodePrograms: { [key: string]: INodeProgram } = {};
   private hoverNodePrograms: { [key: string]: INodeProgram } = {};
   private edgePrograms: { [key: string]: IEdgeProgram } = {};
-  private clusterHiglightProgram:   IClusterHighlightProgram;
+  private clusterHiglightProgram: IClusterHighlightProgram;
 
   private camera: Camera;
 
@@ -240,8 +241,8 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       gl.enable(gl.BLEND);
     }
     const ClusterHighlightProgramConstructor = ClusterHighlightingRectangleProgram
-     // Loading programs NodeFastProgram
-    this.clusterHiglightProgram = new ClusterHighlightProgramConstructor(this.webGLContexts.clusterHighlights); 
+    // Loading programs NodeFastProgram
+    this.clusterHiglightProgram = new ClusterHighlightProgramConstructor(this.webGLContexts.clusterHighlights);
 
     // Loading programs
     for (const type in this.settings.nodeProgramClasses) {
@@ -738,28 +739,53 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     this.normalizationFunction = createNormalizationFunction(this.customBBox || this.nodeExtent);
 
     const nodesPerPrograms: Record<string, number> = {};
-    let clusterAreas = this.additionalData.clusterAreas;
-    this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
-    let nra = 0.025; //nodeRadiusAdjustment
-    for (let i = 0, l = clusterAreas.length; i < l; i++) {
-        let clusterAreaNorm: {xMin: number, xMax: number, yMin: number, yMax: number} = {xMin: 0, xMax: 0 ,yMin: 0, yMax: 0 };
+    if (typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'Rectangle') {
+      let clusterAreas = this.additionalData.clusterAreas;
+      this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
+      let nra = 0.025; //nodeRadiusAdjustment
+      for (let i = 0, l = clusterAreas.length; i < l; i++) {
+        let clusterAreaNorm: { xMin: number, xMax: number, yMin: number, yMax: number } = { xMin: 0, xMax: 0, yMin: 0, yMax: 0 };
         for (let j = 0; j < 2; j++) {
-            let norm_xy: Coordinates = {x: clusterAreas[i][j], y: clusterAreas[i][2+j]};
-            this.normalizationFunction.applyTo(norm_xy);
-            for (let [k, coord] of Object.entries(norm_xy)) {
-                let cur_val: number = coord; 
-                coord = cur_val <= nra ? -nra: cur_val >= 1-nra ? 1 + nra: cur_val;
-              }
-            if (j == 0){
-                clusterAreaNorm.xMin = norm_xy.x;
-                clusterAreaNorm.yMin = norm_xy.y;
-            }
-            else{
-                clusterAreaNorm.xMax = norm_xy.x;
-                clusterAreaNorm.yMax = norm_xy.y;
-            } 
+          let curClusterArea = clusterAreas[i] as [number]
+          let norm_xy: Coordinates = { x: curClusterArea[j], y: curClusterArea[2 + j] };
+          this.normalizationFunction.applyTo(norm_xy);
+          for (let [_, coord] of Object.entries(norm_xy)) {
+            let cur_val: number = coord;
+            coord = cur_val <= nra ? -nra : cur_val >= 1 - nra ? 1 + nra : cur_val;
+          }
+          if (j == 0) {
+            clusterAreaNorm.xMin = norm_xy.x;
+            clusterAreaNorm.yMin = norm_xy.y;
+          }
+          else {
+            clusterAreaNorm.xMax = norm_xy.x;
+            clusterAreaNorm.yMax = norm_xy.y;
+          }
         }
         this.clusterHiglightProgram.process(clusterAreaNorm, i);
+      }
+    }
+    else if(typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'convexHull'){
+      let convexHullsPoints = this.additionalData.clusterAreas;
+      // let nra = 0.5; //nodeRadiusAdjustment
+      for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
+        let convexHullNorm: Coordinates[] = [];
+        const currentHullPoints = convexHullsPoints[i] as [[number, number]]
+        let XYVals = { x: currentHullPoints.map(o => o[0]) as number[], y: currentHullPoints.map(o => o[1]) as number[] }
+        // let half_XY: Coordinates = { x: (Math.min(...XYVals.x) + Math.max(...XYVals.x)) / 2, y: (Math.min(...XYVals.y) + Math.max(...XYVals.y)) / 2 };
+
+        for (let h = 0; h < currentHullPoints.length; h++){
+            let norm_xy: Coordinates = { x: XYVals.x[h], y: XYVals.y[h] };
+            this.normalizationFunction.applyTo(norm_xy);
+            // for (let [k, coord] of Object.entries(norm_xy)) {
+            //   let cur_val: number = coord;
+            //   coord = cur_val <= nra ? -nra : cur_val >= 1 - nra ? 1 + nra : cur_val;
+            // }
+            console.log('normxy', norm_xy)
+            convexHullNorm.push(norm_xy)
+        }
+      this.clusterHiglightProgram.process(convexHullNorm, i);
+      }  
     }
     let nodes = graph.nodes();
 
@@ -1283,12 +1309,12 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     this.clusterHiglightProgram.bind();
     this.clusterHiglightProgram.bufferData();
     this.clusterHiglightProgram.render({
-        matrix: this.matrix,
-        width: this.width,
-        height: this.height,
-        ratio: cameraState.ratio,
-        correctionRatio: this.correctionRatio / cameraState.ratio,
-        scalingRatio: this.pixelRatio,
+      matrix: this.matrix,
+      width: this.width,
+      height: this.height,
+      ratio: cameraState.ratio,
+      correctionRatio: this.correctionRatio / cameraState.ratio,
+      scalingRatio: this.pixelRatio,
     });
     // Do not display labels on move per setting
     if (this.settings.hideLabelsOnMove && moving) return handleEscape();
@@ -1634,13 +1660,13 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     const matrix = override.matrix
       ? override.matrix
       : recomputeMatrix
-      ? matrixFromCamera(
+        ? matrixFromCamera(
           override.cameraState || this.camera.getState(),
           override.viewportDimensions || this.getDimensions(),
           override.graphDimensions || this.getGraphDimensions(),
           override.padding || this.getSetting("stagePadding") || 0,
         )
-      : this.matrix;
+        : this.matrix;
 
     const viewportPos = multiplyVec2(matrix, coordinates);
 
@@ -1662,14 +1688,14 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     const invMatrix = override.matrix
       ? override.matrix
       : recomputeMatrix
-      ? matrixFromCamera(
+        ? matrixFromCamera(
           override.cameraState || this.camera.getState(),
           override.viewportDimensions || this.getDimensions(),
           override.graphDimensions || this.getGraphDimensions(),
           override.padding || this.getSetting("stagePadding") || 0,
           true,
         )
-      : this.invMatrix;
+        : this.invMatrix;
 
     const res = multiplyVec2(invMatrix, {
       x: (coordinates.x / this.width) * 2 - 1,
