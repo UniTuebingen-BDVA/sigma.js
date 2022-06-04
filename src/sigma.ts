@@ -44,11 +44,13 @@ import TouchCaptor, { FakeSigmaMouseEvent } from "./core/captors/touch";
 import { identity, multiplyVec2 } from "./utils/matrices";
 import { doEdgeCollideWithPoint, isPixelColored } from "./utils/edge-collisions";
 import ClusterHighlightingRectangleProgram from "./rendering/webgl/programs/clusterHighlight_rectangle";
+import ClusterHighlightingConvexHullProgram from "./rendering/webgl/programs/clusterHighlight_convexHull";
+
 import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clusterHighlight";
 
 
 interface AdditionalData {
-  clusterAreas: [number[]] | [[[number,number]]];
+  clusterAreas: [number[]] | [[[number,number]]] | undefined;
 }
 
 /**
@@ -240,7 +242,8 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.enable(gl.BLEND);
     }
-    const ClusterHighlightProgramConstructor = ClusterHighlightingRectangleProgram
+    const ClusterHighlightProgramConstructor = this.settings.clusterVis == 'convexHull' ? ClusterHighlightingConvexHullProgram: ClusterHighlightingRectangleProgram;
+
     // Loading programs NodeFastProgram
     this.clusterHiglightProgram = new ClusterHighlightProgramConstructor(this.webGLContexts.clusterHighlights);
 
@@ -766,7 +769,12 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       }
     }
     else if(typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'convexHull'){
+      console.log('in convexhull if')
       let convexHullsPoints = this.additionalData.clusterAreas;
+      let resp_numPoints = convexHullsPoints.map(function (o) { return o.length-1; })
+      console.log(resp_numPoints, resp_numPoints.reduce((a,b) => a+b))
+      this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce((a,b) => a+b));
+      
       // let nra = 0.5; //nodeRadiusAdjustment
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
         let convexHullNorm: Coordinates[] = [];

@@ -92,8 +92,8 @@
        this.programs.forEach((program) => program.bufferData());
      }
  
-     allocate(capacity: number): void {
-       this.programs.forEach((program) => program.allocate(capacity));
+     allocate(capacity: number, calcArraySize?: number): void {
+       this.programs.forEach((program) => program.allocate(capacity = 0, calcArraySize = undefined));
      }
  
      bind(): void {
