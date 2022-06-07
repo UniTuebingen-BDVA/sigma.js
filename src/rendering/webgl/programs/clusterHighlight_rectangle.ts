@@ -15,7 +15,7 @@ export default class ClusterHighlightingRectangleProgram extends AbstractCluster
     this.bind();
   }
 
-  process(data: ClusterRectangleData, offset: number): void {
+  process(data: ClusterRectangleData, offset: number, numPrevPoints?:number,  maxNumCluster?: number): void {
     const array = this.array;
     let i = offset * POINTS * ATTRIBUTES;
     let grey_val = 100 + (data.xMin + data.xMax + data.yMin + data.yMax) / 4 * 150;

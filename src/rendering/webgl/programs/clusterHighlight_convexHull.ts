@@ -17,11 +17,10 @@ export default class ClusterHighlightingConvexHullProgram extends AbstractCluste
     this.cH_start_length = [[0,0]];
   }
 
-  process(data: Array<Coordinates>, offset: number, numPrevPoints: number): void {
+  process(data: Array<Coordinates>, offset: number, numPrevPoints: number, maxNumCluster: number): void {
     const array = this.array;
-    let POINTS = data.length
-    let i =numPrevPoints * ATTRIBUTES;
-    let grey_val = 100;
+    let i = numPrevPoints * ATTRIBUTES;
+    let grey_val = (i-1)/(maxNumCluster-1) * (235 - 80) + 80;
     let a = offset == 0 ? 0.0: 1.0
     const color = rgbaToFloatColor(grey_val, grey_val, grey_val, a);
 
@@ -40,8 +39,6 @@ export default class ClusterHighlightingConvexHullProgram extends AbstractCluste
     const program = this.program;
     gl.useProgram(program);
 
-    // gl.uniform1f(this.sqrtZoomRatioLocation, Math.sqrt(params.ratio));
-    // gl.uniform1f(this.correctionRatioLocation, params.correctionRatio);
     gl.uniformMatrix3fv(this.matrixLocation, false, params.matrix);
     this.cH_start_length.shift()
     for (let sL of this.cH_start_length){
