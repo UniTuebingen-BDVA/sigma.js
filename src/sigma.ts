@@ -769,12 +769,10 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       }
     }
     else if(typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'convexHull'){
-      console.log('in convexhull if')
       let convexHullsPoints = this.additionalData.clusterAreas;
       let resp_numPoints = convexHullsPoints.map(function (o) { return o.length-1; })
-      console.log(resp_numPoints, resp_numPoints.reduce((a,b) => a+b))
       this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce((a,b) => a+b));
-      
+      let numPrevPoints = 0;
       // let nra = 0.5; //nodeRadiusAdjustment
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
         let convexHullNorm: Coordinates[] = [];
@@ -789,10 +787,10 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
             //   let cur_val: number = coord;
             //   coord = cur_val <= nra ? -nra : cur_val >= 1 - nra ? 1 + nra : cur_val;
             // }
-            console.log('normxy', norm_xy)
             convexHullNorm.push(norm_xy)
         }
-      this.clusterHiglightProgram.process(convexHullNorm, i);
+        this.clusterHiglightProgram.process(convexHullNorm, numPrevPoints, i);
+        numPrevPoints += currentHullPoints.length;
       }  
     }
     let nodes = graph.nodes();

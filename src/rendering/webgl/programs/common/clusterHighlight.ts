@@ -9,7 +9,7 @@
  import Sigma from "../../../../sigma";
  
  export interface IClusterHighlightProgram extends IProgram {
-   process(data: ClusterHighlightData, offset: number): void;
+   process(data: ClusterHighlightData, offset: number, numPrevPoints?: number): void;
    render(params: RenderParams): void;
  }
  
@@ -65,7 +65,7 @@
      );
    }
  
-   abstract process(data: ClusterHighlightData, offset: number): void;
+   abstract process(data: ClusterHighlightData, offset: number, numPrevPoints?: number): void;
  }
  
  export interface ClusterHighlightProgramConstructor {
@@ -108,8 +108,8 @@
        });
      }
  
-     process(data: ClusterHighlightData, offset: number): void {
-       this.programs.forEach((program) => program.process(data, offset));
+     process(data: ClusterHighlightData, offset: number, numPrevPoints?:number): void {
+       this.programs.forEach((program) => program.process(data, offset, numPrevPoints));
      }
    };
  }

@@ -10,15 +10,17 @@ import { RenderParams } from "./common/program";
 const ATTRIBUTES = 3;
 
 export default class ClusterHighlightingConvexHullProgram extends AbstractClusterHighlightProgram {
+  cH_start_length: [[number, number]];
   constructor(gl: WebGLRenderingContext) {
     super(gl, vertexShaderSource, fragmentShaderSource, 0, ATTRIBUTES);
     this.bind();
+    this.cH_start_length = [[0,0]];
   }
 
-  process(data: Array<Coordinates>, offset: number): void {
+  process(data: Array<Coordinates>, offset: number, numPrevPoints: number): void {
     const array = this.array;
     let POINTS = data.length
-    let i = offset * POINTS * ATTRIBUTES;
+    let i =numPrevPoints * ATTRIBUTES;
     let grey_val = 100;
     let a = offset == 0 ? 0.0: 1.0
     const color = rgbaToFloatColor(grey_val, grey_val, grey_val, a);
@@ -28,6 +30,7 @@ export default class ClusterHighlightingConvexHullProgram extends AbstractCluste
       array[i++] = data[j].y;
       array[i++] = color;
     }
+    this.cH_start_length.push([numPrevPoints, data.length])
   }
 
   render(params: RenderParams): void {
@@ -40,7 +43,9 @@ export default class ClusterHighlightingConvexHullProgram extends AbstractCluste
     // gl.uniform1f(this.sqrtZoomRatioLocation, Math.sqrt(params.ratio));
     // gl.uniform1f(this.correctionRatioLocation, params.correctionRatio);
     gl.uniformMatrix3fv(this.matrixLocation, false, params.matrix);
-
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, this.array.length / ATTRIBUTES);
+    this.cH_start_length.shift()
+    for (let sL of this.cH_start_length){
+      gl.drawArrays(gl.TRIANGLE_FAN, sL[0], sL[1]);
+  }
   }
 }
