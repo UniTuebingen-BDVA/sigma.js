@@ -20,7 +20,7 @@ export default class ClusterHighlightingConvexHullProgram extends AbstractCluste
   process(data: Array<Coordinates>, offset: number, numPrevPoints: number, maxNumCluster: number): void {
     const array = this.array;
     let i = numPrevPoints * ATTRIBUTES;
-    let grey_val = ((offset - 1) / (maxNumCluster - 1)) * (225 - 80) + 80;
+    let grey_val = maxNumCluster>1 ? ((offset - 1) / (maxNumCluster - 1)) * (225 - 80) + 80: 225
     let a = offset == 0 ? 0.0: 1.0
     const color = rgbaToFloatColor(grey_val, grey_val, grey_val, a);
 
