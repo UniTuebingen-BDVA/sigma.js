@@ -768,7 +768,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       let resp_numPoints = convexHullsPoints.map(function (o) { return o.length; })
       this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce((a, b) => a + b));
       let numPrevPoints = 0;
-      let nra = 0.5; //nodeRadiusAdjustment
+      let nra = 0.8; //nodeRadiusAdjustment
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
         let convexHullNorm: Coordinates[] = [];
         const currentHullPoints = convexHullsPoints[i] as [[number, number]]
