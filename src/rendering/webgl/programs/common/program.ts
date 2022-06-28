@@ -18,7 +18,7 @@ export interface RenderParams {
 
 export interface IProgram {
   bufferData(): void;
-  allocate(capacity: number): void;
+  allocate(capacity: number, calcArraySize?: number): void;
   bind(): void;
   render(params: RenderParams): void;
 }
@@ -67,8 +67,14 @@ export abstract class AbstractProgram implements IProgram {
     gl.bufferData(gl.ARRAY_BUFFER, this.array, gl.DYNAMIC_DRAW);
   }
 
-  allocate(capacity: number): void {
-    this.array = new Float32Array(this.points * this.attributes * capacity);
+  allocate(capacity: number, calcArraySize?: number): void {
+    if (typeof calcArraySize !== 'undefined') {
+      this.array = new Float32Array(calcArraySize * this.attributes);
+    }
+    else {
+      this.array = new Float32Array(this.points * this.attributes * capacity);
+    }
+
   }
 
   hasNothingToRender(): boolean {

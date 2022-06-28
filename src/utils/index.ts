@@ -296,6 +296,13 @@ export function floatArrayColor(val: string): Float32Array {
   return new Float32Array([r / 255, g / 255, b / 255, a]);
 }
 
+export function rgbaToFloatColor(r: number,g: number,b: number,a: number){ 
+  a = (a * 255) | 0;
+  INT32[0] = ((a << 24) | (b << 16) | (g << 8) | r) & 0xfeffffff;
+  var color = FLOAT32[0];
+  return color;
+}
+
 export function floatColor(val: string): number {
   // If the color is already computed, we yield it
   if (typeof FLOAT_COLOR_CACHE[val] !== "undefined") return FLOAT_COLOR_CACHE[val];

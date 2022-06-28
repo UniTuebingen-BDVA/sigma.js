@@ -56,7 +56,8 @@
   "dependencies": {
     "@yomguithereal/helpers": "^1.1.1",
     "events": "^3.3.0",
-    "graphology-utils": "^2.5.0"
+    "graphology-utils": "^2.5.0",
+    "yarn": "^1.22.18"
   },
   "devDependencies": {
     "@babel/core": "^7.16.5",
@@ -83,7 +84,7 @@
     "pixelmatch": "^5.2.1",
     "pngjs": "^6.0.0",
     "prettier": "^2.5.1",
-    "puppeteer": "^10.4.0",
+    "puppeteer": "^14.0.0",
     "raw-loader": "^4.0.2",
     "reload": "^3.2.0",
     "replace": "^1.2.1",
