@@ -50,7 +50,7 @@ import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clus
 
 
 interface AdditionalData {
-  clusterAreas: [number[]] | [[[number, number]]] | undefined;
+  clusterAreas: [number[]] | {x: number; y: number;}[][] | undefined;
 }
 
 /**
@@ -741,7 +741,6 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     // Rescaling function
     this.normalizationFunction = createNormalizationFunction(this.customBBox || this.nodeExtent);
 
-    const nodesPerPrograms: Record<string, number> = {};
     if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'Rectangle') {
       let clusterAreas = this.additionalData.clusterAreas;
       this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
@@ -765,27 +764,17 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     }
     else if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'ConvexHull') {
       let convexHullsPoints = this.additionalData.clusterAreas;
-      let resp_numPoints = convexHullsPoints.map(function (o) { return o.length; })
-      this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce((a, b) => a + b));
+      let resp_numPoints = convexHullsPoints.map(function (o) { return o.length; });
+      this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce(function (a, b) { return a + b; }));
       let numPrevPoints = 0;
-      let nra = 0.8; //nodeRadiusAdjustment
-      for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
-        let convexHullNorm: Coordinates[] = [];
-        const currentHullPoints = convexHullsPoints[i] as [[number, number]]
-        let XYVals = { x: currentHullPoints.map(o => o[0]) as number[], y: currentHullPoints.map(o => o[1]) as number[] }
-        let half_XY = { 'x': (Math.min(...XYVals.x) + Math.max(...XYVals.x)) / 2, 'y': (Math.min(...XYVals.y) + Math.max(...XYVals.y)) / 2 };
-
-        for (let h = 0; h < currentHullPoints.length; h++) {
-          let cur_x = XYVals.x[h] <= half_XY.x ? XYVals.x[h] - nra: XYVals.x[h] + nra
-          let cur_y = XYVals.y[h] <= half_XY.y ? XYVals.y[h] - nra: XYVals.y[h] + nra
-          let norm_xy = { x: cur_x, y: cur_y };
-          this.normalizationFunction.applyTo(norm_xy);
-          convexHullNorm.push(norm_xy)
-        }
-        this.clusterHiglightProgram.process(convexHullNorm, i, numPrevPoints, convexHullsPoints.length-1);
-        numPrevPoints += currentHullPoints.length;
+      for (let i = 0, l = convexHullsPoints.length; i < l; i++) {   
+          const convexClusterPoints = convexHullsPoints[i]          
+          this.clusterHiglightProgram.process(convexClusterPoints, i, numPrevPoints, convexClusterPoints.length - 1);
+          numPrevPoints += convexClusterPoints.length;
       }
-    }
+  }
+  const nodesPerPrograms: Record<string, number> = {};
+
     let nodes = graph.nodes();
 
     for (let i = 0, l = nodes.length; i < l; i++) {
