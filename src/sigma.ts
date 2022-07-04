@@ -778,8 +778,6 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
             }
             this.clusterHiglightProgram.process(convexHullsPointsNorm, i, numPrevPoints, convexHullsPointsNorm.length - 1);
             numPrevPoints += convexHullsPointsNorm.length;        
-          this.clusterHiglightProgram.process(convexClusterPoints, i, numPrevPoints, convexClusterPoints.length - 1);
-          numPrevPoints += convexClusterPoints.length;
       }
   }
   const nodesPerPrograms: Record<string, number> = {};
