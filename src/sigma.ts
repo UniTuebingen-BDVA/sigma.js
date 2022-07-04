@@ -50,7 +50,7 @@ import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clus
 
 
 interface AdditionalData {
-  clusterAreas: [number[]] | {x: number; y: number;}[][] | undefined;
+  clusterAreas: [number[]] | [[number[]]] | undefined;
 }
 
 /**
@@ -769,7 +769,15 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce(function (a, b) { return a + b; }));
       let numPrevPoints = 0;
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {   
-          const convexClusterPoints = convexHullsPoints[i]          
+          const convexClusterPoints = convexHullsPoints[i] as [[number, number]];
+          var convexHullsPointsNorm = []
+            for (var h= 0; h < convexClusterPoints.length; h++){
+                var norm_xy = { x: convexClusterPoints[h][0], y: convexClusterPoints[h][1] };
+                this.normalizationFunction.applyTo(norm_xy);
+                convexHullsPointsNorm.push(norm_xy)
+            }
+            this.clusterHiglightProgram.process(convexHullsPointsNorm, i, numPrevPoints, convexHullsPointsNorm.length - 1);
+            numPrevPoints += convexHullsPointsNorm.length;        
           this.clusterHiglightProgram.process(convexClusterPoints, i, numPrevPoints, convexClusterPoints.length - 1);
           numPrevPoints += convexClusterPoints.length;
       }
