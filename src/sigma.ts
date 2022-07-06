@@ -44,7 +44,7 @@ import TouchCaptor, { FakeSigmaMouseEvent } from "./core/captors/touch";
 import { identity, multiplyVec2 } from "./utils/matrices";
 import { doEdgeCollideWithPoint, isPixelColored } from "./utils/edge-collisions";
 import ClusterHighlightingRectangleProgram from "./rendering/webgl/programs/clusterHighlight_rectangle";
-import ClusterHighlightingConvexHullProgram from "./rendering/webgl/programs/clusterHighlight_convexHull";
+import ClusterHighlightingHullProgram from "./rendering/webgl/programs/clusterHighlight_convexHull";
 
 import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clusterHighlight";
 
@@ -776,7 +776,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
                 this.normalizationFunction.applyTo(norm_xy);
                 convexHullsPointsNorm.push(norm_xy)
             }
-            this.clusterHiglightProgram.process(convexHullsPointsNorm, i, numPrevPoints, convexHullsPointsNorm.length - 1);
+            this.clusterHiglightProgram.process(convexHullsPointsNorm, i, numPrevPoints, convexHullsPoints.length - 1);
             numPrevPoints += convexHullsPointsNorm.length;        
       }
   }
