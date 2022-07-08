@@ -767,7 +767,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       }
     }
     else if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'ConvexHull') {
-      let convexHullsPoints = this.additionalData.clusterAreas;
+      let convexHullsPoints = [...this.additionalData.clusterAreas];
       let resp_numPoints = convexHullsPoints.map(function (o) { return o.length; });
       this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce(function (a, b) { return a + b; }));
       let numPrevPoints = 0;
