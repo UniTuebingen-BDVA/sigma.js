@@ -47,6 +47,7 @@ import ClusterHighlightingRectangleProgram from "./rendering/webgl/programs/clus
 import ClusterHighlightingHullProgram from "./rendering/webgl/programs/clusterHighlight_convexHull";
 
 import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clusterHighlight";
+import ClusterHighlightingConvexHullProgram from "./rendering/webgl/programs/clusterHighlight_convexHull";
 
 
 interface AdditionalData {
@@ -745,6 +746,8 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'Rectangle') {
       let clusterAreas = this.additionalData.clusterAreas;
       this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
+      let noiseClusterExists = !(clusterAreas[0].length <= 1)
+      if (!noiseClusterExists) {clusterAreas.shift()} 
       for (let i = 0, l = clusterAreas.length; i < l; i++) {
         let clusterAreaNorm: { xMin: number, xMax: number, yMin: number, yMax: number } = { xMin: 0, xMax: 0, yMin: 0, yMax: 0 };
         for (let j = 0; j < 2; j++) {
@@ -760,7 +763,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
             clusterAreaNorm.yMax = norm_xy.y;
           }
         }
-        this.clusterHiglightProgram.process(clusterAreaNorm, i);
+        this.clusterHiglightProgram.process(clusterAreaNorm, i, clusterAreas.length, noiseClusterExists);
       }
     }
     else if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'ConvexHull') {
@@ -768,6 +771,8 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       let resp_numPoints = convexHullsPoints.map(function (o) { return o.length; });
       this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce(function (a, b) { return a + b; }));
       let numPrevPoints = 0;
+      let noiseClusterExists = !(convexHullsPoints[0].length <= 1)
+      if (!noiseClusterExists) {convexHullsPoints.shift()} 
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {   
           const convexClusterPoints = convexHullsPoints[i] as [[number, number]];
           var convexHullsPointsNorm = []
@@ -776,7 +781,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
                 this.normalizationFunction.applyTo(norm_xy);
                 convexHullsPointsNorm.push(norm_xy)
             }
-            this.clusterHiglightProgram.process(convexHullsPointsNorm, i, numPrevPoints, convexHullsPoints.length - 1);
+            this.clusterHiglightProgram.process(convexHullsPointsNorm, i, convexHullsPoints.length, noiseClusterExists, numPrevPoints);
             numPrevPoints += convexHullsPointsNorm.length;        
       }
   }

@@ -15,11 +15,12 @@ export default class ClusterHighlightingRectangleProgram extends AbstractCluster
     this.bind();
   }
 
-  process(data: ClusterRectangleData, offset: number, numPrevPoints?:number,  maxNumCluster?: number): void {
+  process(data: ClusterRectangleData, offset: number,  numOfClusters: number, noiseClusterExists: boolean, numPrevPoints?:number): void {
     const array = this.array;
     let i = offset * POINTS * ATTRIBUTES;
-    let grey_val = 100 + (data.xMin + data.xMax + data.yMin + data.yMax) / 4 * 150;
-    let a = offset == 0 ? 0.0: 1.0
+    let firstNoneNoiseCluster = noiseClusterExists ? 1: 0
+    var grey_val = numOfClusters > 1 ? ((offset - firstNoneNoiseCluster) / (numOfClusters - 1 - firstNoneNoiseCluster)) * (225 - 80) + 80 : 225;
+    var a = offset == 0 && noiseClusterExists ? 0.0 : 1.0;
     const color = rgbaToFloatColor(grey_val, grey_val, grey_val, a);
     // Triangle 1
     array[i++] = data.xMin;

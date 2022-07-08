@@ -17,11 +17,12 @@ export default class ClusterHighlightingConvexHullProgram extends AbstractCluste
     this.cH_start_length = [[0,0]];
   }
 
-  process(data: Array<Coordinates>, offset: number, numPrevPoints: number, maxNumCluster: number): void {
+  process(data: Array<Coordinates>, offset: number, numOfClusters: number, noiseClusterExists: boolean, numPrevPoints: number): void {
     const array = this.array;
     let i = numPrevPoints * ATTRIBUTES;
-    let grey_val = maxNumCluster>1 ? ((offset - 1) / (maxNumCluster - 1)) * (225 - 80) + 80: 225
-    let a = offset == 0 ? 0.0: 1.0
+    let firstNoneNoiseCluster = noiseClusterExists ? 1: 0
+    var grey_val = numOfClusters > 1 ? ((offset - firstNoneNoiseCluster) / (numOfClusters - 1 - firstNoneNoiseCluster)) * (225 - 80) + 80 : 225;
+    var a = offset == 0 && noiseClusterExists ? 0.0 : 1.0;
     const color = rgbaToFloatColor(grey_val, grey_val, grey_val, a);
 
     for (let j = 0; j < data.length; j++){
