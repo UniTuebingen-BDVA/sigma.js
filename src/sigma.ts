@@ -706,6 +706,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
   private process(keepArrays = false): this {
     const graph = this.graph;
     const settings = this.settings;
+    const additionalData = this.additionalData
     const dimensions = this.getDimensions();
 
     const nodeZExtent: [number, number] = [Infinity, -Infinity];
@@ -741,10 +742,10 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     // Rescaling function
     this.normalizationFunction = createNormalizationFunction(this.customBBox || this.nodeExtent);
 
-    if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'Rectangle') {
-      let clusterAreas = this.additionalData.clusterAreas.hullPoints;
+    if (typeof additionalData !== 'undefined' && typeof additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'Rectangle') {
+      let clusterAreas = additionalData.clusterAreas.hullPoints;
       this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
-      var greyValues = this.additionalData.clusterAreas.greyValues
+      var greyValues = additionalData.clusterAreas.greyValues
       for (let i = 0, l = clusterAreas.length; i < l; i++) {
         let clusterAreaNorm: { xMin: number, xMax: number, yMin: number, yMax: number } = { xMin: 0, xMax: 0, yMin: 0, yMax: 0 };
         for (let j = 0; j < 2; j++) {
@@ -763,12 +764,12 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
         this.clusterHiglightProgram.process(clusterAreaNorm, greyValues[i], i , 0);
       }
     }
-    else if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'ConvexHull') {
-      let convexHullsPoints = [...this.additionalData.clusterAreas.hullPoints];
+    else if (typeof additionalData !== 'undefined' && typeof additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'ConvexHull') {
+      let convexHullsPoints = [...additionalData.clusterAreas.hullPoints];
       let resp_numPoints = convexHullsPoints.map(function (o) { return o.length; });
       this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce(function (a, b) { return a + b; }));
       let numPrevPoints = 0;
-      var greyValues = this.additionalData.clusterAreas.greyValues
+      var greyValues = additionalData.clusterAreas.greyValues
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {   
           const convexClusterPoints = convexHullsPoints[i] as [[number, number]];
           var convexHullsPointsNorm = []
