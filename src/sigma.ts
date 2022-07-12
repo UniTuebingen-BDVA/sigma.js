@@ -1555,6 +1555,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
    */
   clear(): this {
     this.webGLContexts.nodes.clear(this.webGLContexts.nodes.COLOR_BUFFER_BIT);
+    this.webGLContexts.clusterHighlights.clear(this.webGLContexts.clusterHighlights.COLOR_BUFFER_BIT);
     this.webGLContexts.edges.clear(this.webGLContexts.edges.COLOR_BUFFER_BIT);
     this.webGLContexts.hoverNodes.clear(this.webGLContexts.hoverNodes.COLOR_BUFFER_BIT);
     this.canvasContexts.labels.clearRect(0, 0, this.width, this.height);
