@@ -58,6 +58,8 @@ export interface Settings {
   edgeLabelWeight: string;
   edgeLabelColor: { attribute: string; color?: string } | { color: string; attribute?: undefined };
   stagePadding: number;
+  getCameraSizeRatio: (ratio: number) => number;
+  scaleSize: (size: number, cameraRatio: number) => number;
   // Labels
   labelDensity: number;
   labelGridCellSize: number;
@@ -106,6 +108,10 @@ export const DEFAULT_SETTINGS: Settings = {
   edgeLabelWeight: "normal",
   edgeLabelColor: { attribute: "color" },
   stagePadding: 30,
+
+  // Camera to size ratio function
+  getCameraSizeRatio: (ratio: number) => Math.sqrt(ratio),
+  scaleSize: (size: number, cameraRatio: number) => 1 / Math.sqrt(cameraRatio),
 
   // Labels
   labelDensity: 1,

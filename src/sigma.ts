@@ -510,7 +510,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
         };
 
         const isFakeSigmaMouseEvent = (e.original as FakeSigmaMouseEvent).isFakeSigmaMouseEvent;
-        const nodeAtPosition = isFakeSigmaMouseEvent ? this.getNodeAtPosition(e) : this.hoveredNode;
+        const nodeAtPosition = isFakeSigmaMouseEvent ? this.getNodeAtPosition(e.original) : this.hoveredNode;
 
         if (nodeAtPosition)
           return this.emit(`${eventType}Node`, {
@@ -1333,7 +1333,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
    */
   private updateCachedValues(): void {
     const { ratio } = this.camera.getState();
-    this.cameraSizeRatio = Math.sqrt(ratio);
+    this.cameraSizeRatio = this.settings.getCameraSizeRatio(ratio);
   }
 
   /**---------------------------------------------------------------------------
