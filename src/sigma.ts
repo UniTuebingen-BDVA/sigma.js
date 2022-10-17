@@ -155,7 +155,7 @@ export type SigmaEvents = SigmaStageEvents & SigmaNodeEvents & SigmaEdgeEvents &
  * @param {HTMLElement} container - DOM container in which to render.
  * @param {object}      settings  - Optional settings.
  */
-export default class Sigma extends TypedEventEmitter<SigmaEvents> {
+export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEmitter<SigmaEvents> {
   private settings: Settings;
   private additionalData: AdditionalData | undefined;
   private graph: Graph;
@@ -609,6 +609,26 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
   }
 
   /**
+   * Method used to unbind handlers from the graph.
+   *
+   * @return {undefined}
+   */
+  private unbindGraphHandlers() {
+    const graph = this.graph;
+
+    graph.removeListener("nodeAdded", this.activeListeners.graphUpdate);
+    graph.removeListener("nodeDropped", this.activeListeners.dropNodeGraphUpdate);
+    graph.removeListener("nodeAttributesUpdated", this.activeListeners.softGraphUpdate);
+    graph.removeListener("eachNodeAttributesUpdated", this.activeListeners.graphUpdate);
+    graph.removeListener("edgeAdded", this.activeListeners.graphUpdate);
+    graph.removeListener("edgeDropped", this.activeListeners.dropEdgeGraphUpdate);
+    graph.removeListener("edgeAttributesUpdated", this.activeListeners.softGraphUpdate);
+    graph.removeListener("eachEdgeAttributesUpdated", this.activeListeners.graphUpdate);
+    graph.removeListener("edgesCleared", this.activeListeners.clearEdgesGraphUpdate);
+    graph.removeListener("cleared", this.activeListeners.clearGraphUpdate);
+  }
+
+  /**
    * Method dealing with "leaveEdge" and "enterEdge" events.
    *
    * @return {Sigma}
@@ -840,7 +860,9 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       if (typeof data.label === "string" && !data.hidden)
         this.labelGrid.add(node, data.size, this.framedGraphToViewport(data, { matrix: nullCameraMatrix }));
 
-      this.nodePrograms[data.type].process(data, data.hidden, nodesPerPrograms[data.type]++);
+      const nodeProgram = this.nodePrograms[data.type];
+      if (!nodeProgram) throw new Error(`Sigma: could not find a suitable program for node type "${data.type}"!`);
+      nodeProgram.process(data, data.hidden, nodesPerPrograms[data.type]++);
 
       // Save the node in the highlighted set if needed
       if (data.highlighted && !data.hidden) this.highlightedNodes.add(node);
@@ -1364,8 +1386,47 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
    *
    * @return {Graph}
    */
-  getGraph(): Graph {
+  getGraph(): GraphType {
     return this.graph;
+  }
+
+  /**
+   * Method used to set the renderer's graph.
+   *
+   * @return {Graph}
+   */
+  setGraph(graph: GraphType): void {
+    if (graph === this.graph) return;
+
+    // Unbinding handlers on the current graph
+    this.unbindGraphHandlers();
+
+    // Clearing the graph data caches
+    this.nodeDataCache = {};
+    this.edgeDataCache = {};
+
+    // Cleaning renderer state tied to the current graph
+    this.displayedLabels.clear();
+    this.highlightedNodes.clear();
+    this.hoveredNode = null;
+    this.hoveredEdge = null;
+    this.nodesWithForcedLabels.length = 0;
+    this.edgesWithForcedLabels.length = 0;
+
+    if (this.checkEdgesEventsFrame !== null) {
+      cancelFrame(this.checkEdgesEventsFrame);
+      this.checkEdgesEventsFrame = null;
+    }
+
+    // Installing new graph
+    this.graph = graph;
+
+    // Binding new handlers
+    this.bindGraphHandlers();
+
+    // Re-rendering now to avoid discrepancies from now to next frame
+    this.process();
+    this.render();
   }
 
   /**
@@ -1504,7 +1565,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       if (this.settings.allowInvalidContainer) this.width = 1;
       else
         throw new Error(
-          "Sigma: Container has no width. You can set the allowInvalidContainer setting to true to stop seing this error.",
+          "Sigma: Container has no width. You can set the allowInvalidContainer setting to true to stop seeing this error.",
         );
     }
 
@@ -1512,7 +1573,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
       if (this.settings.allowInvalidContainer) this.height = 1;
       else
         throw new Error(
-          "Sigma: Container has no height. You can set the allowInvalidContainer setting to true to stop seing this error.",
+          "Sigma: Container has no height. You can set the allowInvalidContainer setting to true to stop seeing this error.",
         );
     }
 
@@ -1773,8 +1834,6 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
    * @return {undefined}
    */
   kill(): void {
-    const graph = this.graph;
-
     // Emitting "kill" events so that plugins and such can cleanup
     this.emit("kill");
 
@@ -1790,16 +1849,7 @@ export default class Sigma extends TypedEventEmitter<SigmaEvents> {
     this.touchCaptor.kill();
 
     // Releasing graph handlers
-    graph.removeListener("nodeAdded", this.activeListeners.dropNodeGraphUpdate);
-    graph.removeListener("nodeDropped", this.activeListeners.graphUpdate);
-    graph.removeListener("nodeAttributesUpdated", this.activeListeners.softGraphUpdate);
-    graph.removeListener("eachNodeAttributesUpdated", this.activeListeners.graphUpdate);
-    graph.removeListener("edgeAdded", this.activeListeners.graphUpdate);
-    graph.removeListener("edgeDropped", this.activeListeners.dropEdgeGraphUpdate);
-    graph.removeListener("edgeAttributesUpdated", this.activeListeners.softGraphUpdate);
-    graph.removeListener("eachEdgeAttributesUpdated", this.activeListeners.graphUpdate);
-    graph.removeListener("edgesCleared", this.activeListeners.clearEdgesGraphUpdate);
-    graph.removeListener("cleared", this.activeListeners.clearGraphUpdate);
+    this.unbindGraphHandlers();
 
     // Releasing cache & state
     this.quadtree = new QuadTree();
