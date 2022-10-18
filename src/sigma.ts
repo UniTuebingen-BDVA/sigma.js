@@ -1395,7 +1395,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
    *
    * @return {Graph}
    */
-  setGraph(graph: GraphType): void {
+  setGraph(graph: AbstractGraph<NodeAttributes, EdgeAttributes, GraphAttributes>): void {
     if (graph === this.graph) return;
 
     // Unbinding handlers on the current graph
