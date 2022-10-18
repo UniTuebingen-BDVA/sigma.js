@@ -48,9 +48,12 @@ import ClusterHighlightingRectangleProgram from "./rendering/webgl/programs/clus
 import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clusterHighlight";
 import ClusterHighlightingConvexHullProgram from "./rendering/webgl/programs/clusterHighlight_convexHull";
 
-
 interface AdditionalData {
-  clusterAreas: { hullPoints: number[][][], greyValues: number[] } | { hullPoints: number[][], greyValues: number[] } | undefined}
+  clusterAreas:
+    | { hullPoints: number[][][]; greyValues: number[] }
+    | { hullPoints: number[][]; greyValues: number[] }
+    | undefined;
+}
 
 /**
  * Important functions.
@@ -109,7 +112,7 @@ export interface SigmaEventPayload {
   preventSigmaDefault(): void;
 }
 
-export interface SigmaStageEventPayload extends SigmaEventPayload { }
+export interface SigmaStageEventPayload extends SigmaEventPayload {}
 export interface SigmaNodeEventPayload extends SigmaEventPayload {
   node: string;
 }
@@ -158,7 +161,7 @@ export type SigmaEvents = SigmaStageEvents & SigmaNodeEvents & SigmaEdgeEvents &
 export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEmitter<SigmaEvents> {
   private settings: Settings;
   private additionalData: AdditionalData | undefined;
-  private graph: Graph;
+  private graph: GraphType;
   private mouseCaptor: MouseCaptor;
   private touchCaptor: TouchCaptor;
   private container: HTMLElement;
@@ -210,7 +213,12 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
 
   private camera: Camera;
 
-  constructor(graph: Graph, container: HTMLElement, settings: Partial<Settings> = {}, additionalData?: AdditionalData) {
+  constructor(
+    graph: GraphType,
+    container: HTMLElement,
+    settings: Partial<Settings> = {},
+    additionalData?: AdditionalData,
+  ) {
     super();
 
     this.settings = assign<Settings>({}, DEFAULT_SETTINGS, settings);
@@ -241,7 +249,10 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.enable(gl.BLEND);
     }
-    const ClusterHighlightProgramConstructor = this.settings.clusterVis == 'ConvexHull' ? ClusterHighlightingConvexHullProgram : ClusterHighlightingRectangleProgram;
+    const ClusterHighlightProgramConstructor =
+      this.settings.clusterVis == "ConvexHull"
+        ? ClusterHighlightingConvexHullProgram
+        : ClusterHighlightingRectangleProgram;
 
     // Loading programs NodeFastProgram
     this.clusterHiglightProgram = new ClusterHighlightProgramConstructor(this.webGLContexts.clusterHighlights);
@@ -726,7 +737,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
   private process(keepArrays = false): this {
     const graph = this.graph;
     const settings = this.settings;
-    const additionalData = this.additionalData
+    const additionalData = this.additionalData;
     const dimensions = this.getDimensions();
 
     const nodeZExtent: [number, number] = [Infinity, -Infinity];
@@ -762,47 +773,65 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     // Rescaling function
     this.normalizationFunction = createNormalizationFunction(this.customBBox || this.nodeExtent);
 
-    if (typeof additionalData !== 'undefined' && typeof additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'Rectangle') {
-      let clusterAreas = additionalData.clusterAreas.hullPoints;
+    if (
+      typeof additionalData !== "undefined" &&
+      typeof additionalData.clusterAreas !== "undefined" &&
+      settings.clusterVis == "Rectangle"
+    ) {
+      const clusterAreas = additionalData.clusterAreas.hullPoints;
       this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
-      var greyValues = additionalData.clusterAreas.greyValues
+      const greyValues = additionalData.clusterAreas.greyValues;
       for (let i = 0, l = clusterAreas.length; i < l; i++) {
-        let clusterAreaNorm: { xMin: number, xMax: number, yMin: number, yMax: number } = { xMin: 0, xMax: 0, yMin: 0, yMax: 0 };
+        const clusterAreaNorm: { xMin: number; xMax: number; yMin: number; yMax: number } = {
+          xMin: 0,
+          xMax: 0,
+          yMin: 0,
+          yMax: 0,
+        };
         for (let j = 0; j < 2; j++) {
-          let curClusterArea = clusterAreas[i] as [number]
-          let norm_xy: Coordinates = { x: curClusterArea[j], y: curClusterArea[2 + j] };
+          const curClusterArea = clusterAreas[i] as [number];
+          const norm_xy: Coordinates = { x: curClusterArea[j], y: curClusterArea[2 + j] };
           this.normalizationFunction.applyTo(norm_xy);
           if (j == 0) {
             clusterAreaNorm.xMin = norm_xy.x;
             clusterAreaNorm.yMin = norm_xy.y;
-          }
-          else {
+          } else {
             clusterAreaNorm.xMax = norm_xy.x;
             clusterAreaNorm.yMax = norm_xy.y;
           }
         }
-        this.clusterHiglightProgram.process(clusterAreaNorm, greyValues[i], i , 0);
+        this.clusterHiglightProgram.process(clusterAreaNorm, greyValues[i], i, 0);
+      }
+    } else if (
+      typeof additionalData !== "undefined" &&
+      typeof additionalData.clusterAreas !== "undefined" &&
+      settings.clusterVis == "ConvexHull"
+    ) {
+      const convexHullsPoints = [...additionalData.clusterAreas.hullPoints];
+      const resp_numPoints = convexHullsPoints.map(function (o) {
+        return o.length;
+      });
+      this.clusterHiglightProgram.allocate(
+        0,
+        resp_numPoints.reduce(function (a, b) {
+          return a + b;
+        }),
+      );
+      let numPrevPoints = 0;
+      const greyValues = additionalData.clusterAreas.greyValues;
+      for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
+        const convexClusterPoints = convexHullsPoints[i] as [[number, number]];
+        const convexHullsPointsNorm = [];
+        for (let h = 0; h < convexClusterPoints.length; h++) {
+          const norm_xy = { x: convexClusterPoints[h][0], y: convexClusterPoints[h][1] };
+          this.normalizationFunction.applyTo(norm_xy);
+          convexHullsPointsNorm.push(norm_xy);
+        }
+        this.clusterHiglightProgram.process(convexHullsPointsNorm, greyValues[i], i, numPrevPoints);
+        numPrevPoints += convexHullsPointsNorm.length;
       }
     }
-    else if (typeof additionalData !== 'undefined' && typeof additionalData.clusterAreas !== 'undefined' && settings.clusterVis == 'ConvexHull') {
-      let convexHullsPoints = [...additionalData.clusterAreas.hullPoints];
-      let resp_numPoints = convexHullsPoints.map(function (o) { return o.length; });
-      this.clusterHiglightProgram.allocate(0, resp_numPoints.reduce(function (a, b) { return a + b; }));
-      let numPrevPoints = 0;
-      var greyValues = additionalData.clusterAreas.greyValues
-      for (let i = 0, l = convexHullsPoints.length; i < l; i++) {   
-          const convexClusterPoints = convexHullsPoints[i] as [[number, number]];
-          var convexHullsPointsNorm = []
-            for (var h= 0; h < convexClusterPoints.length; h++){
-                var norm_xy = { x: convexClusterPoints[h][0], y: convexClusterPoints[h][1] };
-                this.normalizationFunction.applyTo(norm_xy);
-                convexHullsPointsNorm.push(norm_xy)
-            }
-            this.clusterHiglightProgram.process(convexHullsPointsNorm, greyValues[i], i , numPrevPoints);
-            numPrevPoints += convexHullsPointsNorm.length;        
-      }
-  }
-  const nodesPerPrograms: Record<string, number> = {};
+    const nodesPerPrograms: Record<string, number> = {};
 
     let nodes = graph.nodes();
 
@@ -1327,7 +1356,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
         });
       }
     }
-    if (typeof this.additionalData !== 'undefined' && typeof this.additionalData.clusterAreas !== 'undefined') {
+    if (typeof this.additionalData !== "undefined" && typeof this.additionalData.clusterAreas !== "undefined") {
       this.clusterHiglightProgram.bind();
       this.clusterHiglightProgram.bufferData();
       this.clusterHiglightProgram.render({
@@ -1723,13 +1752,13 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     const matrix = override.matrix
       ? override.matrix
       : recomputeMatrix
-        ? matrixFromCamera(
+      ? matrixFromCamera(
           override.cameraState || this.camera.getState(),
           override.viewportDimensions || this.getDimensions(),
           override.graphDimensions || this.getGraphDimensions(),
           override.padding || this.getSetting("stagePadding") || 0,
         )
-        : this.matrix;
+      : this.matrix;
 
     const viewportPos = multiplyVec2(matrix, coordinates);
 
@@ -1751,14 +1780,14 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     const invMatrix = override.matrix
       ? override.matrix
       : recomputeMatrix
-        ? matrixFromCamera(
+      ? matrixFromCamera(
           override.cameraState || this.camera.getState(),
           override.viewportDimensions || this.getDimensions(),
           override.graphDimensions || this.getGraphDimensions(),
           override.padding || this.getSetting("stagePadding") || 0,
           true,
         )
-        : this.invMatrix;
+      : this.invMatrix;
 
     const res = multiplyVec2(invMatrix, {
       x: (coordinates.x / this.width) * 2 - 1,
