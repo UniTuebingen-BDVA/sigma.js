@@ -148,19 +148,20 @@ export default class MouseCaptor extends Captor<MouseCaptorEvents> {
   handleDown(e: MouseEvent): void {
     if (!this.enabled) return;
 
-    this.startCameraState = this.renderer.getCamera().getState();
+    // We only start dragging on left button
+    if (e.button === 0) {
+      this.startCameraState = this.renderer.getCamera().getState();
 
-    const { x, y } = getPosition(e, this.container);
-    this.lastMouseX = x;
-    this.lastMouseY = y;
+      const { x, y } = getPosition(e, this.container);
+      this.lastMouseX = x;
+      this.lastMouseY = y;
 
-    this.draggedEvents = 0;
+      this.draggedEvents = 0;
 
-    this.downStartTime = Date.now();
+      this.downStartTime = Date.now();
+      this.isMouseDown = true;
+    }
 
-    // TODO: dispatch events
-    // Left button pressed
-    this.isMouseDown = true;
     this.emit("mousedown", getMouseCoords(e, this.container));
   }
 
@@ -201,6 +202,13 @@ export default class MouseCaptor extends Captor<MouseCaptorEvents> {
     this.isMoving = false;
     setTimeout(() => {
       this.draggedEvents = 0;
+
+      // NOTE: this refresh is here to make sure `hideEdgesOnMove` can work
+      // when someone releases camera pan drag after having stopped moving.
+      // See commit: https://github.com/jacomyal/sigma.js/commit/cfd9197f70319109db6b675dd7c82be493ca95a2
+      // See also issue: https://github.com/jacomyal/sigma.js/issues/1290
+      // It could be possible to render instead of scheduling a refresh but for
+      // now it seems good enough.
       this.renderer.refresh();
     }, 0);
     this.emit("mouseup", getMouseCoords(e, this.container));
