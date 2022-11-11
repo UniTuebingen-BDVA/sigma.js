@@ -4,6 +4,7 @@
  * @module
  */
 import Graph from "graphology-types";
+import extend from "@yomguithereal/helpers/extend";
 
 import Camera from "./core/camera";
 import MouseCaptor from "./core/captors/mouse";
@@ -27,7 +28,6 @@ import {
   getPixelRatio,
   createNormalizationFunction,
   NormalizationFunction,
-  assign,
   cancelFrame,
   matrixFromCamera,
   requestFrame,
@@ -37,7 +37,7 @@ import {
   graphExtent,
 } from "./utils";
 import { edgeLabelsToDisplayFromNodes, LabelGrid } from "./core/labels";
-import { Settings, DEFAULT_SETTINGS, validateSettings } from "./settings";
+import { Settings, validateSettings, resolveSettings } from "./settings";
 import { INodeProgram } from "./rendering/webgl/programs/common/node";
 import { IEdgeProgram } from "./rendering/webgl/programs/common/edge";
 import TouchCaptor, { FakeSigmaMouseEvent } from "./core/captors/touch";
@@ -54,6 +54,12 @@ interface AdditionalData {
     | { hullPoints: number[][]; greyValues: number[] }
     | undefined;
 }
+
+/**
+ * Constants.
+ */
+const X_LABEL_MARGIN = 150;
+const Y_LABEL_MARGIN = 50;
 
 /**
  * Important functions.
@@ -207,7 +213,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
 
   // Programs
   private nodePrograms: { [key: string]: INodeProgram } = {};
-  private hoverNodePrograms: { [key: string]: INodeProgram } = {};
+  private nodeHoverPrograms: { [key: string]: INodeProgram } = {};
   private edgePrograms: { [key: string]: IEdgeProgram } = {};
   private clusterHiglightProgram: IClusterHighlightProgram;
 
@@ -221,7 +227,8 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
   ) {
     super();
 
-    this.settings = assign<Settings>({}, DEFAULT_SETTINGS, settings);
+    // Resolving settings
+    this.settings = resolveSettings(settings);
     this.additionalData = additionalData || undefined;
     // Validating
     validateSettings(this.settings);
@@ -261,7 +268,13 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     for (const type in this.settings.nodeProgramClasses) {
       const NodeProgramClass = this.settings.nodeProgramClasses[type];
       this.nodePrograms[type] = new NodeProgramClass(this.webGLContexts.nodes, this);
-      this.hoverNodePrograms[type] = new NodeProgramClass(this.webGLContexts.hoverNodes, this);
+
+      let NodeHoverProgram = NodeProgramClass;
+      if (type in this.settings.nodeHoverProgramClasses) {
+        NodeHoverProgram = this.settings.nodeHoverProgramClasses[type];
+      }
+
+      this.nodeHoverPrograms[type] = new NodeHoverProgram(this.webGLContexts.hoverNodes, this);
     }
     for (const type in this.settings.edgeProgramClasses) {
       const EdgeProgramClass = this.settings.edgeProgramClasses[type];
@@ -1028,33 +1041,10 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
 
     const cameraState = this.camera.getState();
 
-    // Finding visible nodes to display their labels
-    let visibleNodes: Set<string>;
-
-    if (cameraState.ratio >= 1) {
-      // Camera is unzoomed so no need to ask the quadtree for visible nodes
-      visibleNodes = new Set(this.graph.nodes());
-    } else {
-      // Let's ask the quadtree
-      const viewRectangle = this.viewRectangle();
-
-      visibleNodes = new Set(
-        this.quadtree.rectangle(
-          viewRectangle.x1,
-          1 - viewRectangle.y1,
-          viewRectangle.x2,
-          1 - viewRectangle.y2,
-          viewRectangle.height,
-        ),
-      );
-    }
-
     // Selecting labels to draw
-    // TODO: drop gridsettings likewise
-    // TODO: optimize through visible nodes
-    const labelsToDisplay = this.labelGrid
-      .getLabelsToDisplay(cameraState.ratio, this.settings.labelDensity)
-      .concat(this.nodesWithForcedLabels);
+    const labelsToDisplay = this.labelGrid.getLabelsToDisplay(cameraState.ratio, this.settings.labelDensity);
+    extend(labelsToDisplay, this.nodesWithForcedLabels);
+
     this.displayedLabels = new Set();
 
     // Drawing labels
@@ -1066,6 +1056,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
 
       // If the node was already drawn (like if it is eligible AND has
       // `forceLabel`), we don't want to draw it again
+      // NOTE: we can do better probably
       if (this.displayedLabels.has(node)) continue;
 
       // If the node is hidden, we don't need to display its label obviously
@@ -1073,15 +1064,29 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
 
       const { x, y } = this.framedGraphToViewport(data);
 
-      // TODO: we can cache the labels we need to render until the camera's ratio changes
-      // TODO: this should be computed in the canvas components?
+      // NOTE: we can cache the labels we need to render until the camera's ratio changes
       const size = this.scaleSize(data.size);
 
+      // Is node big enough?
       if (!data.forceLabel && size < this.settings.labelRenderedSizeThreshold) continue;
 
-      if (!visibleNodes.has(node)) continue;
+      // Is node actually on screen (with some margin)
+      // NOTE: we used to rely on the quadtree for this, but the coordinates
+      // conversion make it unreliable and at that point we already converted
+      // to viewport coordinates and since the label grid already culls the
+      // number of potential labels to display this looks like a good
+      // performance compromise.
+      // NOTE: labelGrid.getLabelsToDisplay could probably optimize by not
+      // considering cells obviously outside of the range of the current
+      // view rectangle.
+      if (
+        x < -X_LABEL_MARGIN ||
+        x > this.width + X_LABEL_MARGIN ||
+        y < -Y_LABEL_MARGIN ||
+        y > this.height + Y_LABEL_MARGIN
+      )
+        continue;
 
-      // TODO:
       // Because displayed edge labels depend directly on actually rendered node
       // labels, we need to only add to this.displayedLabels nodes whose label
       // is rendered.
@@ -1226,21 +1231,21 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
       nodesPerPrograms[type] = (nodesPerPrograms[type] || 0) + 1;
     });
     // 2. Allocate for each type for the proper number of nodes
-    for (const type in this.hoverNodePrograms) {
-      this.hoverNodePrograms[type].allocate(nodesPerPrograms[type] || 0);
+    for (const type in this.nodeHoverPrograms) {
+      this.nodeHoverPrograms[type].allocate(nodesPerPrograms[type] || 0);
       // Also reset count, to use when rendering:
       nodesPerPrograms[type] = 0;
     }
     // 3. Process all nodes to render:
     nodesToRender.forEach((node) => {
       const data = this.nodeDataCache[node];
-      this.hoverNodePrograms[data.type].process(data, data.hidden, nodesPerPrograms[data.type]++);
+      this.nodeHoverPrograms[data.type].process(data, data.hidden, nodesPerPrograms[data.type]++);
     });
     // 4. Clear hovered nodes layer:
     this.webGLContexts.hoverNodes.clear(this.webGLContexts.hoverNodes.COLOR_BUFFER_BIT);
     // 5. Render:
-    for (const type in this.hoverNodePrograms) {
-      const program = this.hoverNodePrograms[type];
+    for (const type in this.nodeHoverPrograms) {
+      const program = this.nodeHoverPrograms[type];
 
       program.bind();
       program.bufferData();
@@ -1280,7 +1285,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
   private render(): this {
     this.emit("beforeRender");
 
-    const handleEscape = () => {
+    const exitRender = () => {
       this.emit("afterRender");
       return this;
     };
@@ -1303,7 +1308,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     this.updateCachedValues();
 
     // If we have no nodes we can stop right there
-    if (!this.graph.order) return handleEscape();
+    if (!this.graph.order) return exitRender();
 
     // TODO: improve this heuristic or move to the captor itself?
     // TODO: deal with the touch captor here as well
@@ -1369,13 +1374,13 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
       });
     }
     // Do not display labels on move per setting
-    if (this.settings.hideLabelsOnMove && moving) return handleEscape();
+    if (this.settings.hideLabelsOnMove && moving) return exitRender();
 
     this.renderLabels();
     this.renderEdgeLabels();
     this.renderHighlightedNodes();
 
-    return handleEscape();
+    return exitRender();
   }
 
   /**
