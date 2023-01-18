@@ -109,7 +109,7 @@
      }
  
      process(data: ClusterHighlightData, clusterColors: [number,number,number,number], offset: number, numPrevPoints?: number): void {
-       this.programs.forEach((program) => program.process(data, greyValue, offset, numPrevPoints));
+       this.programs.forEach((program) => program.process(data, clusterColors, offset, numPrevPoints));
      }
    };
  }
