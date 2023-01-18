@@ -50,8 +50,8 @@ import ClusterHighlightingConvexHullProgram from "./rendering/webgl/programs/clu
 
 interface AdditionalData {
   clusterAreas:
-    | { hullPoints: number[][][]; greyValues: number[] }
-    | { hullPoints: number[][]; greyValues: number[] }
+    | { hullPoints: number[][][]; clusterColors: [number,number,number,number] }
+    | { hullPoints: number[][]; clusterColors: [number,number,number,number] }
     | undefined;
 }
 
@@ -793,7 +793,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     ) {
       const clusterAreas = additionalData.clusterAreas.hullPoints;
       this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
-      const greyValues = additionalData.clusterAreas.greyValues;
+      const clusterColors = additionalData.clusterAreas.clusterColors;
       for (let i = 0, l = clusterAreas.length; i < l; i++) {
         const clusterAreaNorm: { xMin: number; xMax: number; yMin: number; yMax: number } = {
           xMin: 0,
@@ -813,7 +813,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
             clusterAreaNorm.yMax = norm_xy.y;
           }
         }
-        this.clusterHiglightProgram.process(clusterAreaNorm, greyValues[i], i, 0);
+        this.clusterHiglightProgram.process(clusterAreaNorm, clusterColors[i], i, 0);
       }
     } else if (
       typeof additionalData !== "undefined" &&
@@ -831,7 +831,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
         }),
       );
       let numPrevPoints = 0;
-      const greyValues = additionalData.clusterAreas.greyValues;
+      const clusterColors = additionalData.clusterAreas.clusterColors;
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
         const convexClusterPoints = convexHullsPoints[i] as [[number, number]];
         const convexHullsPointsNorm = [];
@@ -840,7 +840,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
           this.normalizationFunction.applyTo(norm_xy);
           convexHullsPointsNorm.push(norm_xy);
         }
-        this.clusterHiglightProgram.process(convexHullsPointsNorm, greyValues[i], i, numPrevPoints);
+        this.clusterHiglightProgram.process(convexHullsPointsNorm, clusterColors[i], i, numPrevPoints);
         numPrevPoints += convexHullsPointsNorm.length;
       }
     }
