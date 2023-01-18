@@ -18,7 +18,7 @@ export default class ClusterHighlightingRectangleProgram extends AbstractCluster
   process(data: ClusterRectangleData, clusterColors: [number,number,number,number], offset: number, numPrevPoints?:number): void {
     const array = this.array;
     let i = offset * POINTS * ATTRIBUTES;
-    const color = rgbaToFloatColor(...clustersColors);
+    const color = rgbaToFloatColor(...clusterColors);
     // Triangle 1
     array[i++] = data.xMin;
     array[i++] = data.yMin;
