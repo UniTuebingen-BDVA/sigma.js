@@ -50,8 +50,8 @@ import ClusterHighlightingConvexHullProgram from "./rendering/webgl/programs/clu
 
 interface AdditionalData {
   clusterAreas:
-    | { hullPoints: number[][][]; clusterColors: [number,number,number,number] }
-    | { hullPoints: number[][]; clusterColors: [number,number,number,number] }
+    | { hullPoints: number[][][]; clusterColors: [number,number,number,number][] }
+    | { hullPoints: number[][]; clusterColors: [number,number,number,number][] }
     | undefined;
 }
 
