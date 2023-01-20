@@ -48,7 +48,7 @@ import ClusterHighlightingRectangleProgram from "./rendering/webgl/programs/clus
 import { IClusterHighlightProgram } from "./rendering/webgl/programs/common/clusterHighlight";
 import ClusterHighlightingConvexHullProgram from "./rendering/webgl/programs/clusterHighlight_convexHull";
 
-interface AdditionalData {
+interface nonGraphRenderingData {
   clusterAreas:
     | { hullPoints: number[][][]; clusterColors: [number,number,number,number][] }
     | { hullPoints: number[][]; clusterColors: [number,number,number,number][] }
@@ -166,7 +166,7 @@ export type SigmaEvents = SigmaStageEvents & SigmaNodeEvents & SigmaEdgeEvents &
  */
 export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEmitter<SigmaEvents> {
   private settings: Settings;
-  private additionalData: AdditionalData | undefined;
+  private nonGraphRenderingData: nonGraphRenderingData | undefined;
   private graph: GraphType;
   private mouseCaptor: MouseCaptor;
   private touchCaptor: TouchCaptor;
@@ -223,13 +223,13 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     graph: GraphType,
     container: HTMLElement,
     settings: Partial<Settings> = {},
-    additionalData?: AdditionalData,
+    nonGraphRenderingData?: nonGraphRenderingData,
   ) {
     super();
 
     // Resolving settings
     this.settings = resolveSettings(settings);
-    this.additionalData = additionalData || undefined;
+    this.nonGraphRenderingData = nonGraphRenderingData || undefined;
     // Validating
     validateSettings(this.settings);
     validateGraph(graph);
@@ -750,7 +750,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
   private process(keepArrays = false): this {
     const graph = this.graph;
     const settings = this.settings;
-    const additionalData = this.additionalData;
+    const nonGraphRenderingData = this.nonGraphRenderingData;
     const dimensions = this.getDimensions();
 
     const nodeZExtent: [number, number] = [Infinity, -Infinity];
@@ -787,13 +787,13 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
     this.normalizationFunction = createNormalizationFunction(this.customBBox || this.nodeExtent);
 
     if (
-      typeof additionalData !== "undefined" &&
-      typeof additionalData.clusterAreas !== "undefined" &&
+      typeof nonGraphRenderingData !== "undefined" &&
+      typeof nonGraphRenderingData.clusterAreas !== "undefined" &&
       settings.clusterVis == "Rectangle"
     ) {
-      const clusterAreas = additionalData.clusterAreas.hullPoints;
+      const clusterAreas = nonGraphRenderingData.clusterAreas.hullPoints;
       this.clusterHiglightProgram.allocate(clusterAreas.length || 0);
-      const clusterColors = additionalData.clusterAreas.clusterColors;
+      const clusterColors = nonGraphRenderingData.clusterAreas.clusterColors;
       for (let i = 0, l = clusterAreas.length; i < l; i++) {
         const clusterAreaNorm: { xMin: number; xMax: number; yMin: number; yMax: number } = {
           xMin: 0,
@@ -816,11 +816,11 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
         this.clusterHiglightProgram.process(clusterAreaNorm, clusterColors[i], i, 0);
       }
     } else if (
-      typeof additionalData !== "undefined" &&
-      typeof additionalData.clusterAreas !== "undefined" &&
+      typeof nonGraphRenderingData !== "undefined" &&
+      typeof nonGraphRenderingData.clusterAreas !== "undefined" &&
       settings.clusterVis == "ConvexHull"
     ) {
-      const convexHullsPoints = [...additionalData.clusterAreas.hullPoints];
+      const convexHullsPoints = [...nonGraphRenderingData.clusterAreas.hullPoints];
       const resp_numPoints = convexHullsPoints.map(function (o) {
         return o.length;
       });
@@ -831,7 +831,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
         }),
       );
       let numPrevPoints = 0;
-      const clusterColors = additionalData.clusterAreas.clusterColors;
+      const clusterColors = nonGraphRenderingData.clusterAreas.clusterColors;
       for (let i = 0, l = convexHullsPoints.length; i < l; i++) {
         const convexClusterPoints = convexHullsPoints[i] as [[number, number]];
         const convexHullsPointsNorm = [];
@@ -1361,7 +1361,7 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
         });
       }
     }
-    if (typeof this.additionalData !== "undefined" && typeof this.additionalData.clusterAreas !== "undefined") {
+    if (typeof this.nonGraphRenderingData !== "undefined" && typeof this.nonGraphRenderingData.clusterAreas !== "undefined") {
       this.clusterHiglightProgram.bind();
       this.clusterHiglightProgram.bufferData();
       this.clusterHiglightProgram.render({
