@@ -404,8 +404,8 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
-      this.width / this.pickingDownSizingRatio,
-      this.height / this.pickingDownSizingRatio,
+      this.width * this.pixelRatio / this.pickingDownSizingRatio,
+      this.height * this.pixelRatio / this.pickingDownSizingRatio,
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
@@ -448,7 +448,10 @@ export default class Sigma<GraphType extends Graph = Graph> extends TypedEventEm
    */
   private getNodeAtPosition(position: Coordinates): string | null {
     const { x, y } = position;
-    const color = getPixelColor(this.webGLContexts.nodes, this.frameBuffers.nodes, x, y, this.pickingDownSizingRatio);
+    const canvasX = x * this.pixelRatio
+    const canvasY = y * this.pixelRatio
+
+    const color = getPixelColor(this.webGLContexts.nodes, this.frameBuffers.nodes, canvasX, canvasY, this.pickingDownSizingRatio);
     const index = colorToIndex(...color);
     const itemAt = this.itemIDsIndex[index];
 
