@@ -8,7 +8,7 @@
   "scripts": {
     "build": "webpack --progress && webpack --progress --mode production",
     "clean": "rimraf $npm_package_config_clean",
-    "transpile": "tsc -p ./tsconfig.transpile.json -d && replace '\\.glsl' '.glsl.js' rendering -r --silent && webpack --config ./webpack.programs.config.js",
+    "transpile": "tsc -p ./tsconfig.transpile.json -d && replace-in-file '\\.glsl' '.glsl.js' rendering -r --silent && webpack --config ./webpack.programs.config.js",
     "lint": "eslint $npm_package_config_folders --ext .ts",
     "postpublish": "npm run clean",
     "prettier": "prettier --write $npm_package_config_folders",
@@ -82,6 +82,7 @@
     "puppeteer": "^21.1.1",
     "raw-loader": "^4.0.2",
     "reload": "^3.2.1",
+    "replace-in-file":"^7.1.0",
     "replace": "^1.2.2",
     "rimraf": "^5.0.1",
     "ts-loader": "^9.4.4",
